@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: attendance-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 2 -b 0.0.0.0:10000 app:app
+    envVars:
+      - key: WECHAT_TOKEN
+        sync: false
+      - key: WECHAT_APP_ID
+        sync: false
+      - key: WECHAT_APP_SECRET
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: DATABASE_URL
+        value: sqlite:///attendance.db
