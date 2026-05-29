@@ -261,7 +261,15 @@ ADMIN_PAGE = """<!DOCTYPE html>
         function switchTab(tab) {
             currentTab = tab;
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
+            if (typeof event !== 'undefined' && event && event.target) {
+                event.target.classList.add('active');
+            } else {
+                document.querySelectorAll('.tab').forEach(t => {
+                    if (t.textContent.includes(tab === 'summary' ? '考勤汇总' : tab === 'records' ? '打卡记录' : tab === 'users' ? '员工管理' : '节假日管理')) {
+                        t.classList.add('active');
+                    }
+                });
+            }
             if (tab === 'summary') loadSummary();
             else if (tab === 'records') loadRecords();
             else if (tab === 'users') loadUsersTab();
