@@ -1,5 +1,5 @@
 """考勤打卡系统 - 主应用"""
-from flask import Flask, request, render_template_string, send_from_directory
+from flask import Flask, request, render_template_string, send_from_directory, make_response
 from config import Config
 from models import db
 from wechat_handler import verify_signature, parse_xml, handle_message
@@ -71,6 +71,9 @@ ADMIN_PAGE = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>考勤管理系统 - 管理后台</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -176,10 +179,10 @@ ADMIN_PAGE = """<!DOCTYPE html>
             <button class="logout-btn" onclick="logout()">退出登录</button>
         </div>
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('summary')">考勤汇总</div>
-            <div class="tab" onclick="switchTab('records')">打卡记录</div>
-            <div class="tab" onclick="switchTab('users')">员工管理</div>
-            <div class="tab" onclick="switchTab('holidays')">节假日管理</div>
+            <div class="tab active" data-tab="summary" onclick="switchTab('summary',event)">考勤汇总</div>
+            <div class="tab" data-tab="records" onclick="switchTab('records',event)">打卡记录</div>
+            <div class="tab" data-tab="users" onclick="switchTab('users',event)">员工管理</div>
+            <div class="tab" data-tab="holidays" onclick="switchTab('holidays',event)">节假日管理</div>
         </div>
         <div class="content" id="tabContent"></div>
     </div>
@@ -226,22 +229,54 @@ ADMIN_PAGE = """<!DOCTYPE html>
 
         // ========== 登录 ==========
         async function checkLogin() {
-            const res = await fetch('/api/check_login');
-            const data = await res.json();
-            if (data.logged_in) showApp();
+            try {
+                const res = await fetch('/api/check_login');
+                const data = await res.json();
+                if (data.logged_in) showApp();
+            } catch (e) {
+                console.error('Check login error:', e);
+            }
         }
 
         async function login() {
-            const pwd = document.getElementById('password').value;
-            const res = await fetch('/api/login', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: pwd })
-            });
-            const data = await res.json();
-            if (data.code === 0) {
-                showApp();
-            } else {
-                document.getElementById('loginError').style.display = 'block';
+            console.log('=== login() 被调用了 ===');
+            const btn = document.querySelector('.login-box button');
+            const errEl = document.getElementById('loginError');
+            console.log('btn:', btn, 'errEl:', errEl);
+            if (!btn) { alert('找不到登录按钮元素！'); return; }
+            if (!errEl) { alert('找不到错误提示元素！'); return; }
+            errEl.style.display = 'none';
+            try {
+                const pwdEl = document.getElementById('password');
+                console.log('password element:', pwdEl);
+                const pwd = pwdEl ? pwdEl.value : '';
+                console.log('输入的密码长度:', pwd.length);
+                if (!pwd) { errEl.textContent = '请输入密码'; errEl.style.display = 'block'; return; }
+                btn.disabled = true;
+                btn.textContent = '登录中...';
+                console.log('准备发送 fetch 请求...');
+                const res = await fetch('/api/login', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pwd })
+                });
+                console.log('fetch 返回了，状态码:', res.status);
+                const text = await res.text();
+                console.log('响应内容:', text);
+                let data;
+                try { data = JSON.parse(text); } catch(e) { throw new Error('服务器返回异常: ' + text.substring(0, 100)); }
+                if (data.code === 0) {
+                    showApp();
+                } else {
+                    errEl.textContent = data.msg || '密码错误';
+                    errEl.style.display = 'block';
+                }
+            } catch (e) {
+                errEl.textContent = '请求失败：' + e.message;
+                errEl.style.display = 'block';
+                console.error('Login error:', e);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '登 录';
             }
         }
 
@@ -254,22 +289,18 @@ ADMIN_PAGE = """<!DOCTYPE html>
         function showApp() {
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('appPage').style.display = 'block';
-            loadUsers().then(() => switchTab('summary'));
+            loadUsers().then(() => switchTab('summary')).catch(() => switchTab('summary'));
         }
 
         // ========== Tab切换 ==========
-        function switchTab(tab) {
+        function switchTab(tab, evt) {
             currentTab = tab;
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            if (typeof event !== 'undefined' && event && event.target) {
-                event.target.classList.add('active');
-            } else {
-                document.querySelectorAll('.tab').forEach(t => {
-                    if (t.textContent.includes(tab === 'summary' ? '考勤汇总' : tab === 'records' ? '打卡记录' : tab === 'users' ? '员工管理' : '节假日管理')) {
-                        t.classList.add('active');
-                    }
-                });
-            }
+            const tabMap = { summary: '考勤汇总', records: '打卡记录', users: '员工管理', holidays: '节假日管理' };
+            const label = tabMap[tab] || '';
+            document.querySelectorAll('.tab').forEach(t => {
+                if (t.getAttribute('data-tab') === tab) t.classList.add('active');
+            });
             if (tab === 'summary') loadSummary();
             else if (tab === 'records') loadRecords();
             else if (tab === 'users') loadUsersTab();
@@ -278,9 +309,14 @@ ADMIN_PAGE = """<!DOCTYPE html>
 
         // ========== 加载用户列表 ==========
         async function loadUsers() {
-            const res = await fetch('/api/users');
-            const data = await res.json();
-            allUsers = data.data || [];
+            try {
+                const res = await fetch('/api/users');
+                const data = await res.json();
+                allUsers = data.data || [];
+            } catch (e) {
+                console.error('Failed to load users:', e);
+                allUsers = [];
+            }
         }
 
         // ========== 考勤汇总 ==========
@@ -586,9 +622,9 @@ ADMIN_PAGE = """<!DOCTYPE html>
         }
 
         async function batchHoliday() {
-            const input = prompt('请输入节假日日期，每行一个（格式：YYYY-MM-DD）:\n示例:\n2026-01-01\n2026-01-02\n2026-01-03');
+            const input = prompt('请输入节假日日期，每行一个（格式：YYYY-MM-DD）：\\n示例：\\n2026-01-01\\n2026-01-02\\n2026-01-03');
             if (!input) return;
-            const dates = input.split('\n').map(s => s.trim()).filter(s => s);
+            const dates = input.split('\\n').map(s => s.trim()).filter(s => s);
             const name = prompt('节日名称（可选）：', '法定节假日') || '法定节假日';
 
             const res = await fetch('/api/holidays/batch', {
@@ -630,7 +666,11 @@ ADMIN_PAGE = """<!DOCTYPE html>
 @app.route("/admin")
 def admin_page():
     """管理后台页面"""
-    return render_template_string(ADMIN_PAGE)
+    response = make_response(render_template_string(ADMIN_PAGE))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 @app.route("/")
