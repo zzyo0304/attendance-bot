@@ -7,7 +7,7 @@ from models import db, User, AttendanceRecord
 from utils import (
     get_attendance_cycle, get_day_type, calculate_work_and_overtime,
     calculate_overtime_pay, get_hourly_rate, get_default_record_for_date,
-    count_workdays_in_range
+    count_workdays_in_range, now_bj, today_bj
 )
 from config import Config
 
@@ -127,7 +127,7 @@ def _help_text():
 
 def _check_in(user):
     """上班打卡"""
-    today = date.today()
+    today = today_bj()
     nickname = user.nickname or f"用户{user.id}"
 
     # 检查是否已经打过上班卡
@@ -138,7 +138,7 @@ def _check_in(user):
     if existing and existing.check_in:
         return f"⚠️ {nickname}，你今天已经在 {existing.check_in.strftime('%H:%M:%S')} 打过上班卡了"
 
-    now = datetime.now()
+    now = now_bj()
 
     if existing:
         # 已有记录(可能是补卡的)，更新上班时间
@@ -161,7 +161,7 @@ def _check_in(user):
 
 def _check_out(user):
     """下班打卡"""
-    today = date.today()
+    today = today_bj()
     nickname = user.nickname or f"用户{user.id}"
 
     existing = AttendanceRecord.query.filter_by(
@@ -170,7 +170,7 @@ def _check_out(user):
 
     if not existing or not existing.check_in:
         # 没有上班记录，自动补上班卡（默认9:00）
-        now = datetime.now()
+        now = now_bj()
         check_in = datetime.combine(today, datetime.strptime("09:00", "%H:%M").time())
         if not existing:
             existing = AttendanceRecord(
@@ -185,7 +185,7 @@ def _check_out(user):
     elif existing.check_out:
         return f"⚠️ {nickname}，你今天已经在 {existing.check_out.strftime('%H:%M:%S')} 打过下班卡了"
     else:
-        existing.check_out = datetime.now()
+        existing.check_out = now_bj()
 
     # 计算工时和加班费
     day_type = get_day_type(today)
@@ -215,7 +215,7 @@ def _check_out(user):
 
 def _query_today(user):
     """查询今日考勤"""
-    today = date.today()
+    today = today_bj()
     nickname = user.nickname or f"用户{user.id}"
 
     record = AttendanceRecord.query.filter_by(

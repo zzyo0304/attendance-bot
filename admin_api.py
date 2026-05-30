@@ -7,9 +7,10 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill, numbers
 from models import db, User, AttendanceRecord, Holiday
 from utils import (
-    get_attendance_cycle, get_cycle_by_label, get_day_type,
-    calculate_work_and_overtime, calculate_overtime_pay,
-    get_hourly_rate, get_default_record_for_date, count_workdays_in_range
+    get_attendance_cycle, get_cycle_by_label, get_natural_month_cycle,
+    get_day_type, calculate_work_and_overtime, calculate_overtime_pay,
+    get_hourly_rate, get_default_record_for_date, count_workdays_in_range,
+    today_bj
 )
 
 admin_bp = Blueprint("admin", __name__)
@@ -173,12 +174,17 @@ def get_summary():
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
     cycle = request.args.get("cycle")  # 如 "2026年4月"
+    mode = request.args.get("mode", "cycle")  # "cycle" | "natural"
 
     if cycle:
         start_date, end_date = get_cycle_by_label(cycle)
+    elif start_date and end_date:
+        start_date = date.fromisoformat(start_date)
+        end_date = date.fromisoformat(end_date)
+    elif mode == "natural":
+        start_date, end_date, _ = get_natural_month_cycle()
     else:
-        start_date = date.fromisoformat(start_date) if start_date else get_attendance_cycle()[0]
-        end_date = date.fromisoformat(end_date) if end_date else get_attendance_cycle()[1]
+        start_date, end_date, _ = get_attendance_cycle()
 
     query = User.query
     if user_id:
@@ -246,12 +252,17 @@ def export_excel():
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
     cycle = request.args.get("cycle")
+    mode = request.args.get("mode", "cycle")  # "cycle" | "natural"
 
     if cycle:
         start_date, end_date = get_cycle_by_label(cycle)
+    elif start_date and end_date:
+        start_date = date.fromisoformat(start_date)
+        end_date = date.fromisoformat(end_date)
+    elif mode == "natural":
+        start_date, end_date, _ = get_natural_month_cycle()
     else:
-        start_date = date.fromisoformat(start_date) if start_date else get_attendance_cycle()[0]
-        end_date = date.fromisoformat(end_date) if end_date else get_attendance_cycle()[1]
+        start_date, end_date, _ = get_attendance_cycle()
 
     query = User.query
     if user_id:
@@ -411,7 +422,7 @@ def export_excel():
 @admin_bp.route("/api/holidays", methods=["GET"])
 @login_required
 def get_holidays():
-    year = request.args.get("year", type=int, default=date.today().year)
+    year = request.args.get("year", type=int, default=today_bj().year)
     holidays = Holiday.query.filter_by(year=year).order_by(Holiday.date).all()
     return jsonify({"code": 0, "data": [h.to_dict() for h in holidays]})
 

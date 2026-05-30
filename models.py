@@ -1,6 +1,14 @@
 """数据库模型"""
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
+TZ = ZoneInfo("Asia/Shanghai")
+
+
+def _now_bj():
+    return datetime.now(TZ)
+
 
 db = SQLAlchemy()
 
@@ -13,8 +21,8 @@ class User(db.Model):
     openid = db.Column(db.String(128), unique=True, nullable=False, index=True)
     nickname = db.Column(db.String(64), nullable=True)  # 自定义名字
     base_salary = db.Column(db.Float, default=5000.0)  # 底薪
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at = db.Column(db.DateTime, default=_now_bj)
+    updated_at = db.Column(db.DateTime, default=_now_bj, onupdate=_now_bj)
 
     records = db.relationship("AttendanceRecord", backref="user", lazy="dynamic")
 
@@ -41,7 +49,7 @@ class AttendanceRecord(db.Model):
     overtime_pay = db.Column(db.Float, default=0.0)  # 加班费
     is_manual = db.Column(db.Boolean, default=False)  # 是否补卡
     remark = db.Column(db.String(256), nullable=True)  # 备注
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    created_at = db.Column(db.DateTime, default=_now_bj)
 
     def to_dict(self):
         return {

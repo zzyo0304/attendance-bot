@@ -347,6 +347,10 @@ ADMIN_PAGE = """<!DOCTYPE html>
                         <input type="date" id="summaryEnd" style="width:140px">
                         <button class="btn btn-primary" onclick="loadSummaryByRange()">自定义查询</button>
                         <button class="btn btn-success" onclick="exportExcel()">导出Excel</button>
+                        <select id="exportMode" style="width:140px;margin-left:8px">
+                            <option value="cycle">考勤周期(26~25)</option>
+                            <option value="natural">自然月(1号~月末)</option>
+                        </select>
                     </div>
                     <table id="summaryTable"></table>
                 </div>`;
@@ -384,9 +388,11 @@ ADMIN_PAGE = """<!DOCTYPE html>
         async function loadSummaryByUser() {
             const uid = document.getElementById('summaryUser').value;
             const cycle = document.getElementById('summaryCycle').value;
+            const mode = document.getElementById('exportMode')?.value || 'cycle';
             let url = '/api/summary?';
             if (uid) url += `user_id=${uid}&`;
             if (cycle) url += `cycle=${encodeURIComponent(cycle)}&`;
+            else url += `mode=${mode}&`;
 
             const res = await fetch(url);
             const data = await res.json();
@@ -412,11 +418,13 @@ ADMIN_PAGE = """<!DOCTYPE html>
             const cycle = document.getElementById('summaryCycle')?.value || '';
             const start = document.getElementById('summaryStart')?.value || '';
             const end = document.getElementById('summaryEnd')?.value || '';
+            const mode = document.getElementById('exportMode')?.value || 'cycle';
 
             let url = '/api/export?';
             if (uid) url += `user_id=${uid}&`;
             if (cycle) url += `cycle=${encodeURIComponent(cycle)}&`;
             if (start && end) url += `start_date=${start}&end_date=${end}&`;
+            if (!cycle && !(start && end)) url += `mode=${mode}&`;
 
             window.open(url, '_blank');
         }

@@ -1,8 +1,21 @@
 """核心业务工具函数"""
 from datetime import datetime, date, timedelta, time
 from calendar import monthrange
+from zoneinfo import ZoneInfo
 from config import Config
 from models import Holiday
+
+TZ = ZoneInfo("Asia/Shanghai")
+
+
+def now_bj():
+    """返回北京时间 datetime"""
+    return datetime.now(TZ)
+
+
+def today_bj():
+    """返回北京时间 date"""
+    return now_bj().date()
 
 
 def get_attendance_cycle(today=None):
@@ -12,7 +25,7 @@ def get_attendance_cycle(today=None):
     返回: (cycle_start, cycle_end, cycle_label)
     """
     if today is None:
-        today = date.today()
+        today = today_bj()
 
     if today.day >= 26:
         # 当前周期: 当月26日 ~ 下月25日
@@ -43,7 +56,7 @@ def get_attendance_cycle(today=None):
 
 def get_cycle_by_label(cycle_label):
     """
-    根据周期标签(如"2026年4月")反查周期范围
+    根据周期标签(如"2026年4月")反查周期范围（考勤周期：上月26日~当月25日）
     """
     parts = cycle_label.replace("年", " ").replace("月", "").split()
     year = int(parts[0])
@@ -56,6 +69,22 @@ def get_cycle_by_label(cycle_label):
         start = date(year, month - 1, 26)
     end = date(year, month, 25)
     return start, end
+
+
+def get_natural_month_cycle(year=None, month=None):
+    """
+    计算自然月周期: 当月1日 ~ 当月最后一天
+    返回: (cycle_start, cycle_end, cycle_label)
+    """
+    if year is None or month is None:
+        today = today_bj()
+        year = today.year
+        month = today.month
+
+    start = date(year, month, 1)
+    end = date(year, month, monthrange(year, month)[1])
+    label = f"{year}年{month}月"
+    return start, end, label
 
 
 def is_holiday(d):
@@ -103,7 +132,7 @@ def calculate_lunch_break(check_in, check_out):
     overlap_end = min(co_time, lunch_end)
 
     if overlap_start < overlap_end:
-        delta = datetime.combine(date.today(), overlap_end) - datetime.combine(date.today(), overlap_start)
+        delta = datetime.combine(today_bj(), overlap_end) - datetime.combine(today_bj(), overlap_start)
         return delta.total_seconds() / 3600
     return 0.0
 
