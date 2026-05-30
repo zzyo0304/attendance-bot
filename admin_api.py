@@ -10,7 +10,7 @@ from utils import (
     get_attendance_cycle, get_cycle_by_label, get_natural_month_cycle,
     get_day_type, calculate_work_and_overtime, calculate_overtime_pay,
     get_hourly_rate, get_default_record_for_date, count_workdays_in_range,
-    today_bj
+    today_bj, TZ
 )
 
 admin_bp = Blueprint("admin", __name__)
@@ -127,8 +127,8 @@ def manual_record():
 
     user = User.query.get_or_404(user_id)
 
-    check_in = datetime.combine(record_date, datetime.strptime(check_in_str, "%H:%M").time()) if check_in_str else None
-    check_out = datetime.combine(record_date, datetime.strptime(check_out_str, "%H:%M").time()) if check_out_str else None
+    check_in = datetime.combine(record_date, datetime.strptime(check_in_str, "%H:%M").time(), tzinfo=TZ) if check_in_str else None
+    check_out = datetime.combine(record_date, datetime.strptime(check_out_str, "%H:%M").time(), tzinfo=TZ) if check_out_str else None
 
     # 查找或创建记录
     record = AttendanceRecord.query.filter_by(user_id=user_id, date=record_date).first()

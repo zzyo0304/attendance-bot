@@ -132,7 +132,7 @@ def calculate_lunch_break(check_in, check_out):
     overlap_end = min(co_time, lunch_end)
 
     if overlap_start < overlap_end:
-        delta = datetime.combine(today_bj(), overlap_end) - datetime.combine(today_bj(), overlap_start)
+        delta = datetime.combine(today_bj(), overlap_end, tzinfo=TZ) - datetime.combine(today_bj(), overlap_start, tzinfo=TZ)
         return delta.total_seconds() / 3600
     return 0.0
 
@@ -205,8 +205,8 @@ def get_default_record_for_date(d, user):
 
     day_type = get_day_type(d)
     if day_type == "workday":
-        check_in = datetime.combine(d, time(9, 0, 0))
-        check_out = datetime.combine(d, time(17, 30, 0))
+        check_in = datetime.combine(d, time(9, 0, 0), tzinfo=TZ)
+        check_out = datetime.combine(d, time(17, 30, 0), tzinfo=TZ)
         record = AttendanceRecord(
             user_id=user.id,
             date=d,

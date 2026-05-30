@@ -7,7 +7,7 @@ from models import db, User, AttendanceRecord
 from utils import (
     get_attendance_cycle, get_day_type, calculate_work_and_overtime,
     calculate_overtime_pay, get_hourly_rate, get_default_record_for_date,
-    count_workdays_in_range, now_bj, today_bj
+    count_workdays_in_range, now_bj, today_bj, TZ
 )
 from config import Config
 
@@ -171,7 +171,7 @@ def _check_out(user):
     if not existing or not existing.check_in:
         # 没有上班记录，自动补上班卡（默认9:00）
         now = now_bj()
-        check_in = datetime.combine(today, datetime.strptime("09:00", "%H:%M").time())
+        check_in = datetime.combine(today, datetime.strptime("09:00", "%H:%M").time()).replace(tzinfo=TZ)
         if not existing:
             existing = AttendanceRecord(
                 user_id=user.id,
