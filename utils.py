@@ -150,6 +150,12 @@ def calculate_work_and_overtime(check_in, check_out, day_type):
     if check_in is None or check_out is None:
         return 0.0, 0.0
 
+    # SQLite 不保存时区，从数据库读出后会丢失时区信息，统一补回北京时间
+    if check_in.tzinfo is None:
+        check_in = check_in.replace(tzinfo=TZ)
+    if check_out.tzinfo is None:
+        check_out = check_out.replace(tzinfo=TZ)
+
     total_seconds = (check_out - check_in).total_seconds()
     if total_seconds <= 0:
         return 0.0, 0.0
