@@ -16,4 +16,4 @@ services:
       - key: ADMIN_PASSWORD
         sync: false
       - key: DATABASE_URL
-        value: sqlite:///attendance.db
+        sync: false

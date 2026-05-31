@@ -7,7 +7,13 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "attendance-secret-key")
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///attendance.db")
+    # 优先使用 PostgreSQL（Supabase），本地开发回退到 SQLite
+    _db_url = os.getenv("DATABASE_URL", "")
+    if _db_url and _db_url.startswith("postgres"):
+        # Render 环境的 DATABASE_URL 前缀需要适配
+        SQLALCHEMY_DATABASE_URI = _db_url.replace("postgres://", "postgresql://", 1)
+    else:
+        SQLALCHEMY_DATABASE_URI = _db_url or "sqlite:///attendance.db"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # 微信配置
