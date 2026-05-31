@@ -11,5 +11,9 @@ jobs:
     steps:
       - name: Ping Render service
         run: |
-          curl -s -o /dev/null -w "%{http_code}" https://attendance-bot.onrender.com/api/check_login
-          curl -s -o /dev/null -w "%{http_code}" https://attendance-bot.onrender.com/wechat?echostr=ping
+          echo "Pinging home page..."
+          curl -s -o /dev/null -w "Home: %{http_code}\n" https://attendance-bot.onrender.com/
+          echo "Pinging admin page..."
+          curl -s -o /dev/null -w "Admin: %{http_code}\n" https://attendance-bot.onrender.com/admin
+          echo "Pinging wechat endpoint..."
+          curl -s -o /dev/null -w "WeChat: %{http_code}\n" https://attendance-bot.onrender.com/wechat?echostr=ping
