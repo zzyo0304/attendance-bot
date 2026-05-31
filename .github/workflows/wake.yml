@@ -12,8 +12,8 @@ jobs:
       - name: Ping Render service
         run: |
           echo "Pinging home page..."
-          curl -s -o /dev/null -w "Home: %{http_code}\n" https://attendance-bot.onrender.com/
+          curl -s -o /dev/null -w "Home: %{http_code}\n" https://attendance-bot-apyz.onrender.com/
           echo "Pinging admin page..."
-          curl -s -o /dev/null -w "Admin: %{http_code}\n" https://attendance-bot.onrender.com/admin
+          curl -s -o /dev/null -w "Admin: %{http_code}\n" https://attendance-bot-apyz.onrender.com/admin
           echo "Pinging wechat endpoint..."
-          curl -s -o /dev/null -w "WeChat: %{http_code}\n" https://attendance-bot.onrender.com/wechat?echostr=ping
+          curl -s -o /dev/null -w "WeChat: %{http_code}\n" https://attendance-bot-apyz.onrender.com/wechat?echostr=ping
