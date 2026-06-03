@@ -50,6 +50,24 @@ def check_login():
     return jsonify({"code": 0, "logged_in": session.get("admin_logged_in", False)})
 
 
+@admin_bp.route("/api/health", methods=["GET"])
+def health():
+    """健康检查：真正查询数据库，防止Render和Supabase休眠"""
+    try:
+        user_count = User.query.count()
+        record_count = AttendanceRecord.query.count()
+        db.session.execute(db.text("SELECT 1"))
+        return jsonify({
+            "code": 0,
+            "status": "ok",
+            "db": "connected",
+            "users": user_count,
+            "records": record_count,
+        })
+    except Exception as e:
+        return jsonify({"code": 1, "status": "error", "error": str(e)}), 500
+
+
 # ==================== 用户管理 ====================
 
 @admin_bp.route("/api/users", methods=["GET"])
