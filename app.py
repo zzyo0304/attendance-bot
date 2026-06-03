@@ -21,6 +21,20 @@ with app.app_context():
     db.create_all()
 
 
+@app.route("/api/health")
+def health():
+    """健康检查：查询数据库，防止Render和Supabase休眠"""
+    from models import User, AttendanceRecord
+    from sqlalchemy import text
+    try:
+        user_count = User.query.count()
+        record_count = AttendanceRecord.query.count()
+        db.session.execute(text("SELECT 1"))
+        return {"code": 0, "status": "ok", "db": "connected", "users": user_count, "records": record_count}, 200
+    except Exception as e:
+        return {"code": 1, "status": "error", "error": str(e)}, 500
+
+
 # ==================== 微信接入 ====================
 
 @app.route("/wechat", methods=["GET", "POST"])
