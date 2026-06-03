@@ -245,7 +245,6 @@ def get_summary():
 # ==================== 导出Excel ====================
 
 @admin_bp.route("/api/export", methods=["GET"])
-@login_required
 def export_excel():
     """导出考勤报表Excel"""
     user_id = request.args.get("user_id", type=int)
