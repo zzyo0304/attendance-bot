@@ -1,8 +1,8 @@
-name: Keep Render Awake
+name: Keep Render & Neon Awake
 
 on:
   schedule:
-    # 每2分钟运行一次，防止Render 15分钟休眠
+    # 每2分钟运行一次
     - cron: "*/2 * * * *"
   workflow_dispatch:
 
@@ -10,11 +10,9 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Render service
+      - name: Ping Render & Neon
         run: |
           echo "=== $(date -u) ==="
           curl -s -w "\nHTTP:%{http_code}" https://attendance-bot-apyz.onrender.com/api/health
-          echo ""
-          curl -s -w "\nHTTP:%{http_code}" https://attendance-bot-apyz.onrender.com/api/check_login
           echo ""
           echo "Done."
